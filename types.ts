@@ -1,5 +1,3 @@
-
-
 export enum AvailabilityStatus {
   AVAILABLE = 'متوفر',
   NOT_AVAILABLE = 'غير متوفر',
@@ -51,7 +49,7 @@ export interface MedicineAvailability {
   medicine_name: string;
   availability: AvailabilityStatus;
   price?: number;
-  alternative_name?: string; // Added for alternative name
+  alternative_name?: string;
   updated_at: string;
   pharmacy?: Pharmacy;
 }
@@ -86,18 +84,16 @@ export interface Offer {
   created_at: string;
 }
 
-// --- New Review System Types ---
 export interface Review {
   id: string;
-  targetId: string; // Can be Pharmacy ID or User ID
+  targetId: string;
   authorId: string;
   authorName: string;
-  rating: number; // 1 to 5
+  rating: number;
   comment: string;
   timestamp: string;
 }
 
-// --- Notification System Types ---
 export interface AppNotification {
   id: string;
   type: 'REVIEW' | 'SYSTEM' | 'REQUEST' | 'RESPONSE';
@@ -107,8 +103,6 @@ export interface AppNotification {
   read: boolean;
   link?: string;
 }
-
-// --- New Real-time Search Types ---
 
 export interface SearchRequest {
   id: string;
@@ -146,7 +140,7 @@ export interface UserSession {
   wilaya?: string;
   phone?: string;
   email?: string;
-  password?: string; // Added for mock auth logic
+  password?: string;
   approved?: boolean;
 }
 
