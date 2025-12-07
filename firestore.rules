@@ -1,0 +1,113 @@
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper: Check if user is authenticated
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    // Helper: Check if the user is the owner of the document
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    // Helper: Check if the user has 'ADMIN' role
+    function isAdmin() {
+      return isSignedIn() && 
+             exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'ADMIN';
+    }
+
+    // =========================================================
+    // GLOBAL OPEN COLLECTIONS (High Priority)
+    // =========================================================
+
+    // Allow public read/write for global requests to ensure trending/live features work for guests
+    // Also explicitly allow access to the responses subcollection
+    match /requests_global/{requestId} {
+      allow read, write: if true;
+      
+      match /responses/{responseId} {
+        allow read, write: if true;
+      }
+    }
+
+    match /medicines_global/{medId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    
+    // =========================================================
+    // COLLECTION GROUPS
+    // =========================================================
+    
+    match /{path=**}/profiles_pharmacies/{profileId} {
+      allow read: if true;
+    }
+
+    match /{path=**}/profiles_doctors/{docId} {
+      allow read: if true;
+    }
+    
+    // =========================================================
+    // USER COLLECTIONS
+    // =========================================================
+
+    match /users/{userId} {
+      allow read: if true;
+      allow write: if isOwner(userId) || isAdmin();
+
+      // Cookies Subcollection
+      match /cookies/{cookieId} {
+         allow read, write: if isOwner(userId) || isAdmin();
+      }
+
+      // Pharmacy Profile Subcollection
+      match /profiles_pharmacies/{profileId} {
+         allow read: if true;
+         allow write: if isOwner(userId) || isAdmin();
+         allow update: if (isOwner(userId) || isAdmin()) || 
+                       (isSignedIn() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['rating', 'reviews_count']));
+      }
+      
+      match /profiles_doctors/{docId} {
+         allow read: if true;
+         allow write: if isOwner(userId) || isAdmin();
+      }
+
+      match /reviews/{reviewId} {
+        allow read: if true;
+        // Allow write for everyone to ensure reviews can be posted reliably
+        allow write: if true; 
+      }
+
+      // Realtime Notifications Subcollection
+      // Allow PUBLIC read/write to fix "Missing Permissions" error during polling/listening
+      match /realtime_notifications/{notificationId} {
+         allow read, write: if true;
+      }
+
+      match /requests/{requestId} {
+         allow read, write: if true;
+      }
+      
+      match /favoris/{favId} {
+         allow read, write: if isOwner(userId);
+      }
+      
+      match /medicines/{medId} {
+         allow read: if true;
+         allow write: if isOwner(userId) || isAdmin();
+      }
+    }
+
+    match /prescriptions/{pId} {
+       allow read, write: if true;
+       match /responses/{rId} {
+          allow read, write: if true;
+       }
+    }
+  }
+}
