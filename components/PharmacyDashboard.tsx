@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { UserSession, MedicineAvailability, SearchRequest, DrugStat, AvailabilityStatus, AppNotification, Review } from '../types';
 import { mockService } from '../services/mockService';
@@ -29,7 +30,7 @@ export const PharmacyDashboard: React.FC<PharmacyDashboardProps> = ({ user, onLo
   const [reviews, setReviews] = useState<Review[]>([]);
 
   // Local state for stock filter
-  const [stockFilter, setStockFilter] = useState(''); // ADDED: Stock filter state
+  const [stockFilter, setStockFilter] = useState('');
   const [loading, setLoading] = useState(true);
 
   // Response Modal State
@@ -136,15 +137,13 @@ export const PharmacyDashboard: React.FC<PharmacyDashboardProps> = ({ user, onLo
       try {
           let price: number | undefined;
           
-          // Validation: Check if priceInput is not empty or just whitespace
+          // Validation
           if (!priceInput || priceInput.trim() === '') {
                throw new Error("يرجى إدخال السعر");
           }
-          
           price = parseFloat(priceInput);
-          // Validation: Check if it's a valid number and positive
-          if (isNaN(price) || price <= 0) { // MODIFIED: Added price <= 0 check
-               throw new Error("السعر غير صالح (يجب أن يكون رقماً موجباً)");
+          if (isNaN(price)) {
+               throw new Error("السعر غير صالح");
           }
 
           // Validation
@@ -194,11 +193,6 @@ export const PharmacyDashboard: React.FC<PharmacyDashboardProps> = ({ user, onLo
       await mockService.updateStock(updatedItem);
       setStock(prev => prev.map(s => s.id === item.id ? updatedItem : s));
   };
-  
-  // ADDED: Filtered Stock logic
-  const filteredStock = stock.filter(item => 
-      item.medicine_name.toLowerCase().includes(stockFilter.toLowerCase())
-  );
 
   const renderStars = (rating: number) => {
       return (
@@ -562,18 +556,6 @@ export const PharmacyDashboard: React.FC<PharmacyDashboardProps> = ({ user, onLo
                                     </h3>
                                     <p className="text-gray-400 text-sm mt-2 mr-14">قم بتحديث حالة توفر الأدوية ليظهر للمستخدمين.</p>
                                  </div>
-                                 {/* NEW: Stock Search/Filter Input */}
-                                 <div className="relative w-full md:w-64">
-                                     <input
-                                         type="text"
-                                         placeholder="ابحث باسم الدواء..."
-                                         value={stockFilter}
-                                         onChange={(e) => setStockFilter(e.target.value)}
-                                         className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-3 pr-10 outline-none focus:ring-2 focus:ring-blue-500 font-medium text-sm"
-                                     />
-                                     <Search size={18} className="absolute top-1/2 -translate-y-1/2 right-3 text-gray-400" />
-                                 </div>
-                                 {/* END NEW */}
                             </div>
 
                             <div className="overflow-hidden rounded-2xl border border-gray-100 dark:border-gray-800">
@@ -587,7 +569,7 @@ export const PharmacyDashboard: React.FC<PharmacyDashboardProps> = ({ user, onLo
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-gray-100 dark:divide-gray-800 bg-white dark:bg-gray-900">
-                                        {filteredStock.map(item => ( {/* CHANGED: Using filteredStock */}
+                                        {stock.map(item => (
                                             <tr key={item.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors group">
                                                 <td className="p-5 font-bold text-gray-800 dark:text-white text-base">
                                                     {item.medicine_name}
@@ -623,13 +605,70 @@ export const PharmacyDashboard: React.FC<PharmacyDashboardProps> = ({ user, onLo
                                         ))}
                                     </tbody>
                                 </table>
-                                {/* CHANGED: Conditional rendering for no stock/no results */}
                                 {stock.length === 0 && (
                                     <div className="text-center py-16 text-gray-400">
                                         <Package size={48} className="mx-auto mb-4 opacity-20"/>
                                         <p>لا توجد أدوية في المخزون.</p>
                                     </div>
                                 )}
-                                {stock.length > 0 && filteredStock.length === 0 && (
-                                    <div className="text-center py-16 text-gray-400">
-                                        <Filter size={48} className="mx-auto mb-
+                            </div>
+                        </div>
+                    )}
+
+                    {activeTab === 'REVIEWS' && (
+                        <div className="bg-white dark:bg-gray-900 rounded-[2rem] shadow-sm border border-gray-100 dark:border-gray-800 p-8 animate-fade-in">
+                            <div className="flex items-center justify-between mb-8">
+                                <div>
+                                    <h3 className="font-bold text-2xl text-gray-800 dark:text-white flex items-center gap-3">
+                                        <span className="bg-yellow-100 dark:bg-yellow-900/30 p-2 rounded-xl text-yellow-600 dark:text-yellow-400"><Star size={24}/></span>
+                                        تقييمات المستخدمين
+                                    </h3>
+                                    <p className="text-gray-400 text-sm mt-2 mr-14">آراء وتعليقات المستخدمين حول صيدليتك.</p>
+                                </div>
+                            </div>
+
+                            <div className="space-y-4">
+                                {reviews.length === 0 ? (
+                                    <div className="text-center py-24 bg-gray-50 dark:bg-gray-800/50 rounded-3xl border border-dashed border-gray-200 dark:border-gray-700">
+                                        <div className="bg-white dark:bg-gray-800 w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-6 shadow-sm">
+                                            <MessageSquare size={40} className="text-gray-300 dark:text-gray-600" />
+                                        </div>
+                                        <h3 className="text-xl font-bold text-gray-500 dark:text-gray-400">لا توجد تقييمات حتى الآن</h3>
+                                        <p className="text-gray-400 dark:text-gray-500 text-sm mt-2">ستظهر هنا التقييمات التي يضيفها المستخدمون</p>
+                                    </div>
+                                ) : (
+                                    <>
+                                     <h3 className="font-bold text-lg text-gray-700 dark:text-gray-200 mb-4 px-2">آراء المستخدمين ({reviews.length})</h3>
+                                     {reviews.map(review => (
+                                        <div key={review.id} className="bg-white dark:bg-gray-800 p-6 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md transition-all">
+                                            <div className="flex justify-between items-start mb-4">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-10 h-10 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400 font-bold">
+                                                        {review.authorName.charAt(0)}
+                                                    </div>
+                                                    <div>
+                                                        <h4 className="font-bold text-gray-800 dark:text-white">{review.authorName}</h4>
+                                                        <span className="text-xs text-gray-400">{new Date(review.timestamp).toLocaleDateString('ar-DZ')}</span>
+                                                    </div>
+                                                </div>
+                                                <div className="bg-yellow-50 dark:bg-yellow-900/10 px-3 py-1 rounded-lg">
+                                                    {renderStars(review.rating)}
+                                                </div>
+                                            </div>
+                                            {review.comment && (
+                                                <div className="bg-gray-50 dark:bg-gray-700/30 p-4 rounded-xl text-gray-600 dark:text-gray-300 text-sm leading-relaxed">
+                                                    "{review.comment}"
+                                                </div>
+                                            )}
+                                        </div>
+                                    ))}
+                                    </>
+                                )}
+                            </div>
+                        </div>
+                    )}
+                </>
+            )}
+        </div>
+    );
+};
